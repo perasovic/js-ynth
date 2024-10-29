@@ -1,6 +1,6 @@
 # js-ynth
 
-![image](./img/Bildschirmfoto%202021-12-03%20um%2011.35.50.png)
+![image](./public/gallery/img/f/js-ynth-063.gif)
 
 A playground for soundwave manipulation. Probably sometime something like a Javascript synthesizer.
 
