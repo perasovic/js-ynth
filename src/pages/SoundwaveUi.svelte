@@ -3,8 +3,17 @@
     <div class="errorMsg">{errorMessage}</div>
 {/if}
 <div>
+    <button on:click={toggleCapture}>
+        {#if isCapturing}
+            stop capture
+        {:else if captureCountdown}
+            capture in {captureCountdown} 
+        {:else}
+            capture sound
+        {/if}
+    </button>
     <button on:click={toggleAudioInput}>
-        {#if isInputPlaying}
+        {#if isInputActive}
             stop input
         {:else}
             get input
@@ -21,7 +30,7 @@
         add a sound
     </button>
 </div>
-{#if isInputPlaying}
+{#if isInputActive}
     <AudioInput bind:useEchoCancellation={useEchoCancellation} bind:useNoiseSuppression={useNoiseSuppression} removeHandler={stopAudioInput} />
 {/if}
 {#each sounds as sound}
@@ -38,14 +47,18 @@
         init as initSoundsystem, 
         startSound as startPlayingSound,
         stopSound as stopPlayingSound,
-        startUserAudio,
-        stopUserAudio,
+        startAudioInput as startAudioInputProcessing,
+        startAudioCapture,
+        stopAudioInput as stopAudioInputProcessing,
         setProcessorFps,
         setProcessorSweepTime,
     } from '../utils/soundsystem';
 
     let isSoundPlaying = false;
-    let isInputPlaying = false;
+    let isInputActive = false;
+    let isCapturing = false;
+    let captureCountdown = 0;
+    let captureCountdownTimeout = null;
     let useEchoCancellation = false;
     let useNoiseSuppression = true;
     let sampleSize = 0.1;
@@ -56,7 +69,7 @@
     let sounds = [];
 
     onMount(() => {
-        initSoundsystem(drawWaveCallback, drawSoundCallback, errorCallback);
+        initSoundsystem(drawWaveCallback, onDrawSound, errorCallback);
         sounds = sounds.concat(new Sound());
     });
 
@@ -70,7 +83,7 @@
     function toggleAudioInput() {
         errorMessage = null;
 
-        if (isInputPlaying) {
+        if (isInputActive) {
             stopAudioInput();
         }
         else {
@@ -79,24 +92,24 @@
     }
 
     function startAudioInput() {
-        startUserAudio(useEchoCancellation, useNoiseSuppression)
+        startAudioInputProcessing(useEchoCancellation, useNoiseSuppression)
                 .then(() => {
-                    isInputPlaying = true;
+                    isInputActive = true;
                 })
                 .catch(error => {
                     console.error('cannot get user audio', {error});
                     errorMessage = 'cannot get audio input';
-                    isInputPlaying = false;
+                    isInputActive = false;
                 });
     }
 
     function stopAudioInput() {
-        stopUserAudio();
-        isInputPlaying = false;
+        stopAudioInputProcessing();
+        isInputActive = false;
     }
 
     function updateAudioInput() {
-        if (isInputPlaying) {
+        if (isInputActive) {
             startAudioInput();
         }
     }
@@ -144,6 +157,52 @@
             removedSound.remove();
             sounds = Object.values(remainingSounds);
         }
+    }
+
+    function toggleCapture() {
+        if (isCapturing) {
+            stopCapture();
+        }
+        else {
+            startCaptureCountdown();
+        }
+    }
+
+    function startCaptureCountdown() {
+        clearTimeout(captureCountdownTimeout);
+        captureCountdown = 3;
+        captureCountdownTimeout = setTimeout(() => captureCountdownStep(), 1000);
+    }
+
+    function captureCountdownStep() {
+        captureCountdown--;
+        if (captureCountdown === 0) {
+            startCapture();
+        } else {
+            captureCountdownTimeout = setTimeout(() => captureCountdownStep(), 1000);
+        }
+    }
+
+    function startCapture() {
+        startAudioCapture(useEchoCancellation, useNoiseSuppression)
+                .then(() => {
+                    isCapturing = true;
+                })
+                .catch(error => {
+                    console.error('cannot get user audio', {error});
+                    errorMessage = 'cannot get start audio capture';
+                    isCapturing = false;
+                });
+    }
+
+    function stopCapture() {
+        stopAudioInputProcessing();
+        isCapturing = false;
+    }
+
+    function onDrawSound(data) {
+        isCapturing = false;
+        drawSoundCallback(data);
     }
 
     function errorCallback(errorType) {

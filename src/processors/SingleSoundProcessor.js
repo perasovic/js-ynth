@@ -13,14 +13,18 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
 
         this.samplesX = [];
         this.samplesY = [];
+
+        this.silentSamples = 0;
     }
 
     onMessage(event) {
-        //console.log('AudioWorkletProcessor.onMessage:', event.data);
+        console.log('AudioWorkletProcessor.onMessage:', event.data);
         const { id, data } = event.data;
         switch(id) {
             case 'stop': {
-                this.endProcessing();
+                if (this.continueProcessing) {
+                    this.endProcessing();
+                }
                 break;
             }
             default: {
@@ -68,15 +72,36 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
         if (input[0] && input[1]) {
             const xSamples = input[0];
             const ySamples = input[1];
+            
+            // const maxSample = Array.prototype.reduce.call(ySamples, (result, sample) => Math.abs(sample) > result ? Math.abs(sample) : result, 0);
+            // const hasLoudness = ySamples.some((sample) => sample > 0);
+            
+            const treshold = 0.001;
+            const average = ySamples.reduce((result, sample) => result + sample, 0) / ySamples.length;
+            const absAverage = ySamples.reduce((result, sample) => result + Math.abs(sample), 0) / ySamples.length;
+            
+            const singleSampleOverTreshold = ySamples.some((sample) => Math.abs(sample) > treshold);
+            const averageOverTreshold = Math.abs(average) > treshold;
+            const absAverageOverTreshold = absAverage > treshold;
 
-            if (ySamples.every(sample => sample === 0)) {
-                console.log('silence!');
+            // console.log('ysamples', ySamples);
+            console.log(`soundStarted: ${this.soundStarted}`, { singleSampleOverTreshold, averageOverTreshold, absAverageOverTreshold, silentSamples: this.silentSamples });
+
+            if (averageOverTreshold) {
+                this.soundStarted = true;
+                this.silentSamples = 0;
+            }
+            else if (this.silentSamples > 2){
                 if (this.soundStarted) {
                     this.endProcessing();
                 }
             }
             else {
-                this.soundStarted = true;
+                this.silentSamples++;
+            }
+
+            // to also add silent samples as long as we still capture, do this here
+            if (this.soundStarted) {
                 this.samplesX.push(...xSamples);
                 this.samplesY.push(...ySamples);
             }
@@ -89,7 +114,11 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
         console.log('endProcessing');
         const {samplesX, samplesY} = this;
         this.postMessage('soundData', {samplesX, samplesY});
+        this.samplesX = [];
+        this.samplesY = [];
         this.continueProcessing = false;
+        this.soundStarted = false;
+        this.silentSamples = 0;
     }
 }
 

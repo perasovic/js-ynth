@@ -126,9 +126,11 @@ class SoundwaveProcessor extends AudioWorkletProcessor {
 
         this.processDuration = Date.now() - this.processStartTime;
         // console.log('processTime:', this.processDuration);
+        /*
         if (this.processDuration > 3) {
             console.warn(`processing took ${this.processDuration} ms! did we just post? ${this.lastDrawTime === this.processNowTime}`);
         }
+        */
 
         return this.continueProcessing;
     }

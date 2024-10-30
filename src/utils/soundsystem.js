@@ -7,7 +7,8 @@ let limiter;
 let preGain;
 
 let isSoundPlaying;
-let isInputPlaying;
+let isAudioInputActive;
+let isAudioCaptureActive;
 let inputStream;
 
 let processor;
@@ -72,7 +73,7 @@ function handleProcessorMessage(message) {
         }
         case 'soundData': {
             console.log('got soundData', data);
-            stopSingleSoundProcessor();
+            stopAudioInput();
             soundDataCallback(data);
             break;
         }
@@ -123,23 +124,58 @@ function assertAudioContextRunning() {
     }
 }
 
-async function startUserAudio(echoCancellation, noiseSuppression) {
-    stopUserAudio();
+async function startAudioInput(echoCancellation, noiseSuppression) {
+    stopAudioInput();
     assertAudioContextRunning();
     return navigator.mediaDevices.getUserMedia({ audio: {echoCancellation, noiseSuppression} })
         .then(stream => {
             const audioSourceNode = new MediaStreamAudioSourceNode(audioContext, {mediaStream: stream});
             audioSourceNode.connect(limiter);
             startSoundwaveProcessor();
-            isInputPlaying = true;
+            isAudioInputActive = true;
             inputStream = stream;
             return true;
         });
 }
 
-function stopUserAudio() {
-    isInputPlaying = false;
+function endAudioInput() {
+    isAudioInputActive = false;
     stopSoundwaveProcessor();
+    if (inputStream) {
+        inputStream.getAudioTracks().forEach(track => {
+            track.stop();
+        });
+        inputStream = null;
+    }
+}
+
+function stopAudioInput() {
+    if (isAudioInputActive) {
+        endAudioInput();
+    }
+    if (isAudioCaptureActive) {
+        endAudioCapture();
+    }
+}
+
+async function startAudioCapture(echoCancellation, noiseSuppression) {
+    stopAudioInput();
+    assertAudioContextRunning();
+    console.log('start audio capture', { echoCancellation, noiseSuppression });
+    return navigator.mediaDevices.getUserMedia({ audio: {echoCancellation, noiseSuppression} })
+        .then(stream => {
+            const audioSourceNode = new MediaStreamAudioSourceNode(audioContext, {mediaStream: stream});
+            audioSourceNode.connect(limiter);
+            startSingleSoundProcessor();
+            isAudioCaptureActive = true;
+            inputStream = stream;
+            return true;
+        });
+}
+
+function endAudioCapture() {
+    isAudioCaptureActive = false;
+    stopSingleSoundProcessor();
     if (inputStream) {
         inputStream.getAudioTracks().forEach(track => {
             track.stop();
@@ -152,7 +188,6 @@ function startSound() {
     assertAudioContextRunning();
     preGain.connect(limiter);
     startSoundwaveProcessor();
-    //startSingleSoundProcessor();
     isSoundPlaying = true;
 }
 
@@ -175,7 +210,7 @@ function startSingleSoundProcessor() {
 function stopSingleSoundProcessor() {
     if (processor) {
         console.log('stopSingleSoundProcessor');
-        //processorMessage('stop');
+        processorMessage('stop');
         limiter.disconnect(processor);
         processor.disconnect(Pizzicato.masterGainNode);
         processor = null;
@@ -194,7 +229,7 @@ function startSoundwaveProcessor() {
 }
 
 function stopSoundwaveProcessor() {
-    if (processor && !isInputPlaying && !isSoundPlaying) {
+    if (processor && !isAudioInputActive && !isSoundPlaying) {
         console.log('stopSoundwaveProcessor');
         processorMessage('stop');
         limiter.disconnect(processor);
@@ -229,8 +264,9 @@ export {
     setProcessorSweepTime,
     setProcessorFps,
     createGain,
-    startUserAudio,
-    stopUserAudio,
+    startAudioInput,
+    startAudioCapture,
+    stopAudioInput,
     startSound,
     stopSound,
 }
