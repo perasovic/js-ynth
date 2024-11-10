@@ -33,6 +33,9 @@
 {#if isInputActive}
     <AudioInput bind:useEchoCancellation={useEchoCancellation} bind:useNoiseSuppression={useNoiseSuppression} removeHandler={stopAudioInput} />
 {/if}
+{#if showSoundCapture}
+    <SoundCapture bind:useEchoCancellation={useEchoCancellation} bind:useNoiseSuppression={useNoiseSuppression} bind:silenceTreshold={silenceTreshold} removeHandler={() => {showSoundCapture = false;}} />
+{/if}
 {#each sounds as sound}
     <SoundwaveControls bind:sound={sound} removeHandler={() => removeSound(sound)} />
 {/each}
@@ -40,6 +43,7 @@
 <script>
     import {onMount} from 'svelte';
     import AudioInput from '../modules/AudioInput.svelte';
+    import SoundCapture from '../modules/SoundCapture.svelte';
     import SoundwaveControls from '../modules/soundwave/SoundwaveControls.svelte';
     import Sound from '../utils/Sound';
     import Oscilloscope, { drawWaveCallback, drawSoundCallback } from '../modules/oscilloscope/Oscilloscope.svelte';
@@ -57,10 +61,12 @@
     let isSoundPlaying = false;
     let isInputActive = false;
     let isCapturing = false;
+    let showSoundCapture = false;
     let captureCountdown = 0;
     let captureCountdownTimeout = null;
     let useEchoCancellation = false;
     let useNoiseSuppression = true;
+    let silenceTreshold = 0;
     let sampleSize = 0.1;
     let fps = 60;
     let oldWavesDisplayed = 10;
@@ -164,6 +170,7 @@
             stopCapture();
         }
         else {
+            showSoundCapture = true;
             startCaptureCountdown();
         }
     }
@@ -190,7 +197,7 @@
                 })
                 .catch(error => {
                     console.error('cannot get user audio', {error});
-                    errorMessage = 'cannot get start audio capture';
+                    errorMessage = 'cannot start audio capture';
                     isCapturing = false;
                 });
     }
