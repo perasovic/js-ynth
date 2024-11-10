@@ -52,8 +52,11 @@ function createSoundwaveProcessor() {
     return processorNode;
 }
 
-function createSingleSoundProcessor() {
-    const processorNode = new AudioWorkletNode(audioContext, 'single-sound-processor', {processorOptions});
+function createSingleSoundProcessor(silenceTreshold) {
+    const processorNode = new AudioWorkletNode(audioContext, 'single-sound-processor', { processorOptions: {
+        ...processorOptions,
+        silenceTreshold,
+    }});
     processorNode.port.onmessage = (e) => {
         //console.log('soundsystem.onmessage', e);
         handleProcessorMessage(e.data);
@@ -158,15 +161,15 @@ function stopAudioInput() {
     }
 }
 
-async function startAudioCapture(echoCancellation, noiseSuppression) {
+async function startAudioCapture(echoCancellation, noiseSuppression, silenceTreshold) {
     stopAudioInput();
     assertAudioContextRunning();
-    console.log('start audio capture', { echoCancellation, noiseSuppression });
+    console.log('start audio capture', { echoCancellation, noiseSuppression, silenceTreshold });
     return navigator.mediaDevices.getUserMedia({ audio: {echoCancellation, noiseSuppression} })
         .then(stream => {
             const audioSourceNode = new MediaStreamAudioSourceNode(audioContext, {mediaStream: stream});
             audioSourceNode.connect(limiter);
-            startSingleSoundProcessor();
+            startSingleSoundProcessor(silenceTreshold);
             isAudioCaptureActive = true;
             inputStream = stream;
             return true;
@@ -196,11 +199,11 @@ function stopSound() {
     stopSoundwaveProcessor();
 }
 
-function startSingleSoundProcessor() {
+function startSingleSoundProcessor(silenceTreshold) {
     if (!processor) {
-        console.log('startSingleSoundProcessor')
+        console.log('startSingleSoundProcessor with silenceTreshold', silenceTreshold);
 
-        processor = createSingleSoundProcessor();
+        processor = createSingleSoundProcessor(silenceTreshold);
 
         limiter.connect(processor);
         processor.connect(Pizzicato.masterGainNode);

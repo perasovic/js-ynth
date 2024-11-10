@@ -4,7 +4,8 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
         super();
 
         this.options = options.processorOptions;
-        //console.log('SingleSoundProcessor', this.options)
+        this.silenceTreshold = this.options.silenceTreshold || 0;
+        console.log('SingleSoundProcessor', options)
 
         this.port.onmessage = this.onMessage.bind(this);
 
@@ -77,16 +78,11 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
             // const maxSample = Array.prototype.reduce.call(ySamples, (result, sample) => Math.abs(sample) > result ? Math.abs(sample) : result, 0);
             // const hasLoudness = ySamples.some((sample) => sample > 0);
             
-            const treshold = 0.001;
-            const average = ySamples.reduce((result, sample) => result + sample, 0) / ySamples.length;
             const absAverage = ySamples.reduce((result, sample) => result + Math.abs(sample), 0) / ySamples.length;
-            
-            const singleSampleOverTreshold = ySamples.some((sample) => Math.abs(sample) > treshold);
-            const averageOverTreshold = Math.abs(average) > treshold;
-            const absAverageOverTreshold = absAverage > treshold;
+            const absAverageOverTreshold = absAverage > this.silenceTreshold;
 
             // console.log('ysamples', ySamples);
-            console.log(`soundStarted: ${this.soundStarted}`, { singleSampleOverTreshold, averageOverTreshold, absAverageOverTreshold, silentSamples: this.silentSamples });
+            // console.log(`soundStarted: ${this.soundStarted}`, { singleSampleOverTreshold, averageOverTreshold, absAverageOverTreshold, silentSamples: this.silentSamples });
 
             if (absAverageOverTreshold) {
                 this.soundStarted = true;

@@ -191,7 +191,7 @@
     }
 
     function startCapture() {
-        startAudioCapture(useEchoCancellation, useNoiseSuppression)
+        startAudioCapture(useEchoCancellation, useNoiseSuppression, silenceTreshold)
                 .then(() => {
                     isCapturing = true;
                 })
