@@ -65,6 +65,7 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
         if (input[0] && !input[1]) {
             console.warn('no ySamples - output busy?');
             this.postMessage('error', 'process');
+            this.resetState();
             return false;
         }
 
@@ -87,7 +88,7 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
             // console.log('ysamples', ySamples);
             console.log(`soundStarted: ${this.soundStarted}`, { singleSampleOverTreshold, averageOverTreshold, absAverageOverTreshold, silentSamples: this.silentSamples });
 
-            if (averageOverTreshold) {
+            if (absAverageOverTreshold) {
                 this.soundStarted = true;
                 this.silentSamples = 0;
             }
@@ -110,15 +111,19 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
         return this.continueProcessing;
     }
 
-    endProcessing() {
-        console.log('endProcessing');
-        const {samplesX, samplesY} = this;
-        this.postMessage('soundData', {samplesX, samplesY});
+    resetState() {
         this.samplesX = [];
         this.samplesY = [];
         this.continueProcessing = false;
         this.soundStarted = false;
         this.silentSamples = 0;
+    }
+
+    endProcessing() {
+        console.log('endProcessing');
+        const {samplesX, samplesY} = this;
+        this.postMessage('soundData', {samplesX, samplesY});
+        this.resetState();
     }
 }
 
