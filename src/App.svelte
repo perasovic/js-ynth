@@ -1,6 +1,6 @@
 <main>
 	<h1>JS-YNTH</h1>
-	<small>v. {version} · <a href="{linkUrl}" bind:this={archiveLink}>ARCHIVE</a> · <a href="gallery.html" bind:this={galleryLink}>GALLERY</a></small>
+	<small>v. {version} · <a href="{linkUrl}">ARCHIVE</a> · <a href="gallery.html">GALLERY</a> · <a href="https://github.com/perasovic/js-ynth">SOURCE CODE</a></small>
 	{#if userClicked}
 		<SoundwaveUi></SoundwaveUi>
 	{:else}
@@ -17,15 +17,13 @@
 	export let version;
 
 	let userClicked = false;
-	let archiveLink;
-	let galleryLink;
 
 	const linkUrl = location.pathname.includes('/versions/') ? '../' : './versions/';
 
 	window.addEventListener('pointerup', initApp);
 
 	function initApp(event) {
-		if (event.target !== archiveLink && event.target !== galleryLink) {
+		if (event.target.closest("small") === null) {
 			window.removeEventListener('pointerup', initApp);
 			userClicked = true;
 		}
