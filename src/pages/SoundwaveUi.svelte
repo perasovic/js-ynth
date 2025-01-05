@@ -3,6 +3,16 @@
     <div class="errorMsg">{errorMessage}</div>
 {/if}
 <div>
+    <button on:click={toggleSound}>
+        {#if isSoundPlaying}
+            stop sound
+        {:else}
+            play sound
+        {/if}
+    </button>
+    <button on:click={addSound}>
+        add a sound
+    </button>
     <button on:click={toggleCapture}>
         {#if isCapturing}
             stop capture
@@ -18,16 +28,6 @@
         {:else}
             get input
         {/if}
-    </button>
-    <button on:click={toggleSound}>
-        {#if isSoundPlaying}
-            stop sound
-        {:else}
-            play sound
-        {/if}
-    </button>
-    <button on:click={addSound}>
-        add a sound
     </button>
 </div>
 {#if isInputActive}
