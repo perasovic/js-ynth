@@ -1,6 +1,8 @@
-<ViewControls bind:sampleSize={sampleSize} bind:oldWavesDisplayed={oldWavesDisplayed} bind:fps={fps} />
-<div class="canvasContainer center" bind:this={canvasContainer}>
-    <canvas class="canvas" bind:this={onscreenCanvas}></canvas>
+<div class="stickyContainer">
+    <ViewControls bind:sampleSize={sampleSize} bind:oldWavesDisplayed={oldWavesDisplayed} bind:fps={fps} />
+    <div class="canvasContainer center" bind:this={canvasContainer}>
+        <canvas class="canvas" bind:this={onscreenCanvas}></canvas>
+    </div>
 </div>
 
 
@@ -193,6 +195,15 @@
 
 
 <style>
+    .stickyContainer {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: white;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+
     .canvasContainer {
         width: 600px;
         height: 410px;

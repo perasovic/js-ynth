@@ -69,6 +69,7 @@
     .remove-button {
         height: 26px;
         width: 26px;
+        color: #ff3e00;
         border: 1px solid #ff3e00;
         background: none;
         font-size: 0.6rem;
