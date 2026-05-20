@@ -1,3 +1,8 @@
+const MIN_DURATION_MS = 200;           // Mindest-Aufnahmedauer
+const SILENCE_DURATION_MS = 1000;      // Stille bis Stop
+const HYSTERESIS_FACTOR = 1.2;         // 20% höher für Start
+const PADDING_DURATION_MS = 100;       // Stille-Puffer vorne und hinten
+
 class SingleSoundProcessor extends AudioWorkletProcessor {
 
     constructor(options) {
@@ -5,6 +10,16 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
 
         this.options = options.processorOptions;
         this.silenceTreshold = this.options.silenceTreshold || 0;
+        
+        this.startThreshold = this.silenceTreshold * HYSTERESIS_FACTOR;
+        this.stopThreshold = this.silenceTreshold;
+
+        // sampleRate is available globally in AudioWorkletGlobalScope
+        this.currentSampleRate = typeof sampleRate !== 'undefined' ? sampleRate : 44100;
+        this.minSamplesRequired = (this.currentSampleRate * MIN_DURATION_MS) / 1000;
+        this.silenceSamplesRequired = (this.currentSampleRate * SILENCE_DURATION_MS) / 1000;
+        this.paddingSamples = (this.currentSampleRate * PADDING_DURATION_MS) / 1000;
+
         console.log('SingleSoundProcessor', options)
 
         this.port.onmessage = this.onMessage.bind(this);
@@ -14,8 +29,11 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
 
         this.samplesX = [];
         this.samplesY = [];
+        this.preRecordBufferX = [];
+        this.preRecordBufferY = [];
 
-        this.silentSamples = 0;
+        this.silentSamplesCount = 0;
+        this.totalSamplesRecorded = 0;
     }
 
     onMessage(event) {
@@ -44,65 +62,61 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
     {
         //console.log('process')
         const input = inputs[0];
-        const output = outputs[0];
-
-        // copy over input to output to bypass the sound to the next audio node
-        for (let channel = 0; channel < output.length; ++channel) {
-            const inChannel = input[channel];
-            const outChannel = output[channel];
-
-            if (inChannel) {
-                for (let i = 0; i < inChannel.length; i++) {
-                    outChannel[i] = inChannel[i];
-                }
-            }
-        }
 
         // check data - no input at all may occur occasionally
-        // if we have input[0] but not input[1], there's something wrong
         if (!input[0]) {
             console.warn('no input')
-        }
-        if (input[0] && !input[1]) {
-            console.warn('no ySamples - output busy?');
-            this.postMessage('error', 'process');
-            this.resetState();
-            return false;
+            return this.continueProcessing;
         }
 
         // collect 'em all!
-        if (input[0] && input[1]) {
-            const xSamples = input[0];
-            const ySamples = input[1];
-            
-            // const maxSample = Array.prototype.reduce.call(ySamples, (result, sample) => Math.abs(sample) > result ? Math.abs(sample) : result, 0);
-            // const hasLoudness = ySamples.some((sample) => sample > 0);
-            
-            const absAverage = ySamples.reduce((result, sample) => result + Math.abs(sample), 0) / ySamples.length;
-            const absAverageOverTreshold = absAverage > this.silenceTreshold;
+        // if input is mono (no input[1]), fallback to input[0] for ySamples
+        const xSamples = input[0];
+        const ySamples = input[1] || input[0];
+        
+        const frameCount = ySamples.length;
+        
+        const absAverage = ySamples.reduce((result, sample) => result + Math.abs(sample), 0) / frameCount;
 
-            // console.log('ysamples', ySamples);
-            // console.log(`soundStarted: ${this.soundStarted}`, { singleSampleOverTreshold, averageOverTreshold, absAverageOverTreshold, silentSamples: this.silentSamples });
+            if (!this.soundStarted) {
+                this.preRecordBufferX.push(...xSamples);
+                this.preRecordBufferY.push(...ySamples);
+                
+                // Keep the rolling buffer within the padding size limit
+                if (this.preRecordBufferX.length > this.paddingSamples) {
+                    const excess = this.preRecordBufferX.length - this.paddingSamples;
+                    this.preRecordBufferX.splice(0, excess);
+                    this.preRecordBufferY.splice(0, excess);
+                }
 
-            if (absAverageOverTreshold) {
-                this.soundStarted = true;
-                this.silentSamples = 0;
-            }
-            else if (this.silentSamples > 2){
-                if (this.soundStarted) {
-                    this.endProcessing();
+                if (absAverage > this.startThreshold) {
+                    this.soundStarted = true;
+                    this.silentSamplesCount = 0;
+                    this.totalSamplesRecorded = this.preRecordBufferX.length;
+                    
+                    // Prepend the padded samples recorded before the start
+                    this.samplesX.push(...this.preRecordBufferX);
+                    this.samplesY.push(...this.preRecordBufferY);
                 }
             }
-            else {
-                this.silentSamples++;
-            }
 
-            // to also add silent samples as long as we still capture, do this here
             if (this.soundStarted) {
                 this.samplesX.push(...xSamples);
                 this.samplesY.push(...ySamples);
+                this.totalSamplesRecorded += frameCount;
+
+                if (absAverage > this.stopThreshold) {
+                    this.silentSamplesCount = 0;
+                } else {
+                    this.silentSamplesCount += frameCount;
+                }
+
+                if (this.totalSamplesRecorded >= this.minSamplesRequired) {
+                    if (this.silentSamplesCount >= this.silenceSamplesRequired) {
+                        this.endProcessing();
+                    }
+                }
             }
-        }
 
         return this.continueProcessing;
     }
@@ -110,13 +124,23 @@ class SingleSoundProcessor extends AudioWorkletProcessor {
     resetState() {
         this.samplesX = [];
         this.samplesY = [];
+        this.preRecordBufferX = [];
+        this.preRecordBufferY = [];
         this.continueProcessing = false;
         this.soundStarted = false;
-        this.silentSamples = 0;
+        this.silentSamplesCount = 0;
+        this.totalSamplesRecorded = 0;
     }
 
     endProcessing() {
         console.log('endProcessing');
+        // Trim trailing silence, but leave the padding duration at the end
+        const trimCount = Math.max(0, this.silentSamplesCount - this.paddingSamples);
+        if (trimCount > 0 && trimCount < this.samplesX.length) {
+            this.samplesX.splice(this.samplesX.length - trimCount, trimCount);
+            this.samplesY.splice(this.samplesY.length - trimCount, trimCount);
+        }
+
         const {samplesX, samplesY} = this;
         this.postMessage('soundData', {samplesX, samplesY});
         this.resetState();
