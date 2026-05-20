@@ -41,7 +41,7 @@
 {/each}
 
 <script>
-    import {onMount} from 'svelte';
+    import {onMount, onDestroy} from 'svelte';
     import AudioInput from '../modules/AudioInput.svelte';
     import SoundCapture from '../modules/SoundCapture.svelte';
     import SoundwaveControls from '../modules/soundwave/SoundwaveControls.svelte';
@@ -64,6 +64,7 @@
     let showSoundCapture = false;
     let captureCountdown = 0;
     let captureCountdownTimeout = null;
+    let stopSoundTimeout = null;
     let useEchoCancellation = false;
     let useNoiseSuppression = true;
     let silenceTreshold = 0;
@@ -77,6 +78,10 @@
     onMount(() => {
         initSoundsystem(drawWaveCallback, onDrawSound, errorCallback);
         sounds = sounds.concat(new Sound());
+    });
+
+    onDestroy(() => {
+        clearTimeout(stopSoundTimeout);
     });
 
     // reactive stuff
@@ -138,7 +143,8 @@
         //TODO: find a timeout without magic number - it seems to be not the sound's release
         //const timeout = Math.max(soundWave.release * 1000, drawInterval);
         const timeout = 600;
-        setTimeout(() => {
+        clearTimeout(stopSoundTimeout);
+        stopSoundTimeout = setTimeout(() => {
             if (!isSoundPlaying) {
                 stopPlayingSound();
             }

@@ -12,6 +12,8 @@
 </div>
 
 <script>
+    import { onDestroy } from 'svelte';
+
     export let value, min, max;
     export let rotRange = 2 * Math.PI * 0.83;
     export let pixelRange = 200;
@@ -32,6 +34,10 @@
 
     // avoid scrolling on mobile devices
     window.addEventListener('touchmove', preventTouchMove, { passive: false });
+
+    onDestroy(() => {
+        window.removeEventListener('touchmove', preventTouchMove);
+    });
 
     function round(num) {
         return num.toFixed(3);
