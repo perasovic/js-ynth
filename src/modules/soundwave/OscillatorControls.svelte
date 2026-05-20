@@ -44,7 +44,7 @@
     .container {
         display: flex;
         flex-direction: column;
-        padding: 5px 5px 12px;
+        padding: 4px 4px 8px;
     }
 
     .controls {
@@ -53,23 +53,31 @@
         justify-content: space-around;
         border: 1px solid;
         border-radius: 1em;
-        height: 120px;
-        padding-top: 24px;
+        height: 100px;
+        padding-top: 16px;
+        gap: 8px;
     }
 
     .labelContainer {
-        margin-top: -6px;
-        margin-left: 10px;
+        margin-top: -4px;
+        margin-left: 8px;
         position: absolute;
         background-color: #fff;
         width: max-content;
         height: max-content;
-        padding-right: 3px;
-        padding-left: 3px;
+        padding: 0 4px;
+        font-size: 0.85rem;
     }
 
     .disabled {
         pointer-events: none;
         opacity: 0.6;
+    }
+
+    @media screen and (max-width: 500px) {
+        .controls {
+            height: 90px;
+            padding-top: 12px;
+        }
     }
 </style>

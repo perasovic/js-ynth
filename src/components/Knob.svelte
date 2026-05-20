@@ -1,13 +1,22 @@
-<div class="knobContainer">
-    <div class="label">{title}</div>
+<div class="control-block">
+    <div class="title">{title}</div>
+    <div class="value-area">
+        {#if iconClassMap[displayedValue]}
+            <span class="icon--tabler {iconClassMap[displayedValue]}"></span>
+        {:else}
+            <span class="value-display">{displayedValue}</span>
+            {#if unit}<span class="unit">{unit}</span>{/if}
+        {/if}
+    </div>
     {#if enableInverse}
-        <button class="inverseButton" class:useInverse on:click={() => {useInverse = !useInverse}}><span class="icon">⅟</span></button>
+        <button class="inverseButton" class:useInverse on:click={() => {useInverse = !useInverse}}>⅟</button>
     {/if}
-    <div class="knob center" style="--rotation: {rotation}" on:pointerdown|self={knobClicked}></div>
-    <div class="label">{displayedValue} {unit}</div>
-    <div class="stepButtonContainer">
-        <button class="stepButton" on:pointerdown|self={stepUpClicked}><span class="icon">&plus;</span></button>
-        <button class="stepButton" on:pointerdown|self={stepDownClicked}><span class="icon">&minus;</span></button>
+    <div class="button-column">
+        <button class="stepButton up" on:pointerdown|self={stepUpClicked}>▲</button>
+        <button class="stepButton down" on:pointerdown|self={stepDownClicked}>▼</button>
+    </div>
+    <div class="knob-wrapper">
+        <div class="knob" style="--rotation: {rotation}" on:pointerdown|self={knobClicked}></div>
     </div>
 </div>
 
@@ -27,6 +36,13 @@
     let startY, startValue, stepButtonDown, stepButtonTimeout;
     let displayedValue;
     let stopScrolling = false;
+
+    const iconClassMap = {
+        'sine': 'icon--tabler--wave-sine',
+        'triangle': 'icon--tabler--wave-triangle',
+        'sawtooth': 'icon--tabler--wave-saw-tool',
+        'square': 'icon--tabler--wave-square'
+    };
 
     $: valueRange = max - min;
     $: rotation = startRotation + (value - min) / valueRange * rotRange;
@@ -108,14 +124,110 @@
 
 
 <style>
+    .control-block {
+        display: grid;
+        grid-template-columns: 50px 24px 44px;
+        grid-template-rows: 16px 52px;
+        gap: 2px 6px;
+        padding: 6px 8px;
+        background-color: #f8f8f8;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        min-width: 140px;
+        max-width: 150px;
+    }
 
-    .knobContainer {
+    .title {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #888;
+        letter-spacing: 0.5px;
+        line-height: 1;
+    }
+
+    .value-area {
+        grid-column: 1;
+        grid-row: 2;
         display: flex;
         flex-direction: column;
         align-items: center;
-        margin-bottom: 10px;
-        width: 160px;
-        position: relative;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .value-display {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #ff3e00;
+        line-height: 1;
+    }
+
+    .icon--tabler {
+        width: 1.8em;
+        height: 1.8em;
+        color: #ff3e00;
+    }
+
+    .unit {
+        font-size: 0.65rem;
+        color: #999;
+        line-height: 1;
+    }
+
+    .button-column {
+        grid-column: 2;
+        grid-row: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        justify-content: center;
+    }
+
+    .stepButton {
+        color: #999;
+        font-size: 0.7rem;
+        border: 0.5px solid #ccc;
+        background: white;
+        height: 20px;
+        width: 20px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border-radius: 1px;
+        line-height: 1;
+    }
+
+    .stepButton.up {
+        padding-bottom: 2px;
+    }
+
+    .stepButton.down {
+        padding-top: 2px;
+    }
+
+    .stepButton:hover {
+        color: #ff3e00;
+        border-color: #ff3e00;
+        background-color: #fff3f0;
+    }
+
+    .stepButton:active {
+        background-color: #ff3e00;
+        border-color: #ff3e00;
+        color: white;
+    }
+
+    .knob-wrapper {
+        grid-column: 3;
+        grid-row: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .knob {
@@ -124,51 +236,32 @@
         height: 44px;
         padding: 0;
         border-radius: 50%;
-        background-image: conic-gradient(white 0%, white 2%, #ff3e00 2%, #ff3e00 98%, white 98%, white 100%);
+        background-image: conic-gradient(white 0%, white 4%, #ff3e00 4%, #ff3e00 96%, white 96%, white 100%);
         transform: rotate(calc(var(--rotation) * 1rad));
         transform-origin: 50% 50%;
+        cursor: ns-resize;
     }
-
-    .label {
-        margin: 5px;
-    }
-
-    .stepButtonContainer {
-        display: flex;
-        flex-direction: row;
-        position: absolute;
-        width: 130px;
-        top: 67px;
-        justify-content: space-between;
-    }
-
-    .stepButton {
-        color: #ff3e00;
-        font-size: 1rem;
-        border: none;
-        background: transparent;
-        height: 35px;
-        width: 35px;
-        padding: 0;
-        margin: 0;
-    }
-
-    .icon {
-        pointer-events: none;
-    }
-
 
     .inverseButton {
-        color: #ff3e00;
-        font-size: 1rem;
-        border: 1px solid #ff3e00;
-        background: transparent;
-        height: 30px;
-        width: 30px;
-        padding: 0;
         position: absolute;
-        margin-left: 87px;
-        margin-top: 28px;
+        color: #ff3e00;
+        font-size: 0.6rem;
+        border: 1px solid #ff3e00;
+        background: white;
+        height: 16px;
+        width: 18px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border-radius: 2px;
+        right: 4px;
+        top: 4px;
+    }
+
+    .inverseButton:hover {
+        background-color: #fff3f0;
     }
 
     .useInverse {

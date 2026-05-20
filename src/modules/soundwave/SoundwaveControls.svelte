@@ -1,7 +1,17 @@
 <Panel heading="SOUNDWAVE" isOpen={true} removeHandler={() => removeHandler(sound)}>
-    <SoundGeneratorControls bind:frequency={soundFrequency} bind:waveType={soundWaveType} bind:detune={soundDetune} />
-    <LFOControls bind:lfoActive={lfoActive} bind:frequency={lfoFrequency} bind:waveType={lfoWaveType} bind:depth={lfoDepth} />
+    <div class="soundwave-layout">
+        <SoundGeneratorControls bind:frequency={soundFrequency} bind:waveType={soundWaveType} bind:detune={soundDetune} />
+        <LFOControls bind:lfoActive={lfoActive} bind:frequency={lfoFrequency} bind:waveType={lfoWaveType} bind:depth={lfoDepth} />
+    </div>
 </Panel>
+
+<style>
+    .soundwave-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+</style>
 
 
 <script>

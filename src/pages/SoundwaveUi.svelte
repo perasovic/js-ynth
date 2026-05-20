@@ -1,44 +1,56 @@
-<Oscilloscope bind:sampleSize={sampleSize} bind:oldWavesDisplayed={oldWavesDisplayed} bind:fps={fps} />
-{#if errorMessage}
-    <div class="errorMsg">{errorMessage}</div>
-{/if}
-<div>
-    <button on:click={toggleSound}>
-        {#if isSoundPlaying}
-            stop sound
-        {:else}
-            play sound
+<div class="layout">
+    <div class="left-column">
+        <Oscilloscope bind:sampleSize={sampleSize} bind:oldWavesDisplayed={oldWavesDisplayed} bind:fps={fps} />
+    </div>
+    <div class="right-column">
+        {#if errorMessage}
+            <div class="errorMsg">{errorMessage}</div>
         {/if}
-    </button>
-    <button on:click={addSound}>
-        add a sound
-    </button>
-    <button on:click={toggleCapture}>
-        {#if isCapturing}
-            stop capture
-        {:else if captureCountdown}
-            capture in {captureCountdown} 
-        {:else}
-            capture sound
-        {/if}
-    </button>
-    <button on:click={toggleAudioInput}>
+        <div class="button-group">
+            <button 
+                class="primary-action {isSoundPlaying ? 'is-playing' : ''}" 
+                on:click={toggleSound}>
+                {#if isSoundPlaying}
+                    <span class="status-dot"></span> stop sound
+                {:else}
+                    play sound
+                {/if}
+            </button>
+            <button on:click={addSound}>
+                add a sound
+            </button>
+            <button 
+                class="{isCapturing ? 'is-recording' : ''} {captureCountdown ? 'is-countdown' : ''}" 
+                on:click={toggleCapture}>
+                {#if isCapturing}
+                    <span class="status-dot recording"></span> stop capture
+                {:else if captureCountdown}
+                    <span class="countdown-number">{captureCountdown}</span> capture in...
+                {:else}
+                    capture sound
+                {/if}
+            </button>
+            <button 
+                class="{isInputActive ? 'is-active' : ''}" 
+                on:click={toggleAudioInput}>
+                {#if isInputActive}
+                    <span class="status-dot active"></span> stop input
+                {:else}
+                    get input
+                {/if}
+            </button>
+        </div>
         {#if isInputActive}
-            stop input
-        {:else}
-            get input
+            <AudioInput bind:useEchoCancellation={useEchoCancellation} bind:useNoiseSuppression={useNoiseSuppression} removeHandler={stopAudioInput} />
         {/if}
-    </button>
+        {#if showSoundCapture}
+            <SoundCapture bind:useEchoCancellation={useEchoCancellation} bind:useNoiseSuppression={useNoiseSuppression} bind:silenceTreshold={silenceTreshold} removeHandler={() => {showSoundCapture = false;}} />
+        {/if}
+        {#each sounds as sound}
+            <SoundwaveControls bind:sound={sound} removeHandler={() => removeSound(sound)} />
+        {/each}
+    </div>
 </div>
-{#if isInputActive}
-    <AudioInput bind:useEchoCancellation={useEchoCancellation} bind:useNoiseSuppression={useNoiseSuppression} removeHandler={stopAudioInput} />
-{/if}
-{#if showSoundCapture}
-    <SoundCapture bind:useEchoCancellation={useEchoCancellation} bind:useNoiseSuppression={useNoiseSuppression} bind:silenceTreshold={silenceTreshold} removeHandler={() => {showSoundCapture = false;}} />
-{/if}
-{#each sounds as sound}
-    <SoundwaveControls bind:sound={sound} removeHandler={() => removeSound(sound)} />
-{/each}
 
 <script>
     import {onMount, onDestroy} from 'svelte';
@@ -237,15 +249,125 @@
 
 
 <style>
+    .layout {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+    }
+
+    .left-column {
+        position: sticky;
+        top: 0;
+        flex-shrink: 0;
+    }
+
+    .right-column {
+        flex: 1;
+        min-width: 0;
+        max-width: 600px;
+    }
+
+    @media screen and (max-width: 900px) {
+        .layout {
+            flex-direction: column;
+        }
+        .left-column {
+            position: relative;
+            width: 100%;
+        }
+    }
+
     .errorMsg {
         margin: 20px 0;
+        padding: 12px 16px;
+        background-color: #fff3f0;
+        border-left: 3px solid #ff3e00;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
     }
 
     button {
         background-color: white;
         color: #ff3e00;
         text-align: left;
-        border: 1px solid;
+        border: 1px solid #ff3e00;
         text-transform: uppercase;
+        padding: 8px 16px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    button:hover {
+        background-color: #fff3f0;
+    }
+
+    /* Status-Indikatoren */
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #ff3e00;
+        animation: pulse 1.5s infinite;
+    }
+
+    .status-dot.recording {
+        background-color: #dc2626;
+        animation: pulse 0.8s infinite;
+    }
+
+    .status-dot.active {
+        background-color: #16a34a;
+        animation: none;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.1); }
+    }
+
+    /* Aktive Zustände */
+    .is-playing {
+        background-color: #ff3e00 !important;
+        color: white !important;
+    }
+
+    .is-recording {
+        background-color: #dc2626 !important;
+        color: white !important;
+        border-color: #dc2626 !important;
+    }
+
+    .is-active {
+        background-color: #16a34a !important;
+        color: white !important;
+        border-color: #16a34a !important;
+    }
+
+    .is-countdown {
+        background-color: #f59e0b !important;
+        color: white !important;
+        border-color: #f59e0b !important;
+    }
+
+    .countdown-number {
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+
+    /* Primär-Aktion */
+    .primary-action {
+        font-weight: 600;
+    }
+
+    .primary-action:not(.is-playing):hover {
+        background-color: #fff3f0;
     }
 </style>
