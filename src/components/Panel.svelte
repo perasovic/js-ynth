@@ -29,7 +29,7 @@
 
     .panel-header {
         margin: 0;
-        border: 1px solid #ff3e00;
+        border: 1px solid #ddd;
         transition: .3s;
         display: flex;
         position: relative;
@@ -65,7 +65,7 @@
         justify-content: space-between;
         align-items: center;
         background-color: white;
-        color: #ff3e00;
+        color: #666;
         text-align: left;
         border: none;
         padding: 4px 8px;
@@ -75,8 +75,8 @@
     .remove-button {
         height: 22px;
         width: 22px;
-        color: #ff3e00;
-        border: 1px solid #ff3e00;
+        color: #999;
+        border: 1px solid #ccc;
         background: none;
         font-size: 0.5rem;
         margin-left: 4px;
@@ -89,8 +89,13 @@
         flex-shrink: 0;
     }
 
+    .remove-button:hover {
+        color: #ff3e00;
+        border-color: #ff3e00;
+    }
+
     .isOpen {
-        border: 1px solid #ff3e00;
+        border: 1px solid #ddd;
         border-top: none;
         height: fit-content;
         padding: 4px;

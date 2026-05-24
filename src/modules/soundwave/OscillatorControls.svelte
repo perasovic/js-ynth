@@ -51,7 +51,7 @@
         display: flex;
         flex-direction: row;
         justify-content: space-around;
-        border: 1px solid;
+        border: 1px solid #ccc;
         border-radius: 1em;
         height: 100px;
         padding-top: 16px;

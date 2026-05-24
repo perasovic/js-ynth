@@ -135,6 +135,7 @@
         border-radius: 4px;
         min-width: 140px;
         max-width: 150px;
+        position: relative;
     }
 
     .title {
@@ -243,7 +244,10 @@
     }
 
     .inverseButton {
-        position: absolute;
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+        align-self: start;
         color: #ff3e00;
         font-size: 0.6rem;
         border: 1px solid #ff3e00;
@@ -256,8 +260,8 @@
         justify-content: center;
         cursor: pointer;
         border-radius: 2px;
-        right: 4px;
-        top: 4px;
+        margin-top: -2px;
+        margin-right: -2px;
     }
 
     .inverseButton:hover {
